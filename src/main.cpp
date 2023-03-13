@@ -137,6 +137,7 @@ static void pressKey(INPUT &in, bool &&isArrow = true, int &&delay = 100) {
 
 int main()
 {
+    std::cout << "\nProgramm started...\n" << '\n';
     HWND hwndDesktop = GetDesktopWindow();    
     cv::Mat result, src, templ;
     double minVal{ }, maxVal{ };
@@ -158,9 +159,14 @@ int main()
             break;
         }
     }
+    std::cout << '\t' << "*grey arrow finded*" << '\n';
 
     const int findY{ maxLoc.y + (templ.rows / 2) }; // 264 282
     const int findX{ maxLoc.x + (templ.cols / 2) }; // 965 959
+
+    std::cout
+        << "| X = " << findX << '\t'
+        << "| Y = " << findY << '\n';
 
     std::array<const int, MAX_MYKEY> arrow_x
     {
@@ -190,6 +196,7 @@ int main()
         int slot{};
         for (int fishing{}; fishing < cnst::fishing::durability; ++fishing)
         {
+            std::cout << "*fishing*" << '\n';
             SetCursorPos(findX, findY);
             if (fishing != 0) Sleep(9000);
             int count{};
@@ -213,6 +220,7 @@ int main()
             rclick(mouse);
         }
         Sleep(2000);
+        std::cout << "*moving*" << '\n';
         pressKey(move_left, false, 1000);
         pressKey(jump, false, 200);
         pressKey(move_right, false, 1000);
@@ -223,6 +231,7 @@ int main()
 
         ++slot;
         if (slot >= inputSlots.size()) break;
+        std::cout << "*change slot*" << '\n';
         pressKey(inputSlots[slot + 1], false);
     }
     while (GetAsyncKeyState(VK_ESCAPE) == 0);
