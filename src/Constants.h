@@ -22,7 +22,8 @@ namespace cnst
     {
         const int
             durability = 12,
-            slots = 3;
+            slots = 3,
+            max_arrow = 40;
     }
 
     namespace key

@@ -4,7 +4,7 @@
 #include "opencv2/highgui.hpp"
 #include <array>
 #include "Constants.h"
-
+#include <future>
 #include <iostream>
 
 using namespace cv;
@@ -81,6 +81,11 @@ static std::array<INPUT, cnst::fishing::slots> inputSlots
     fillingInputKey(cnst::key::k1),
     fillingInputKey(cnst::key::k2),
     fillingInputKey(cnst::key::k3)
+    /*fillingInputKey(cnst::key::k4),
+    fillingInputKey(cnst::key::k5),
+    fillingInputKey(cnst::key::k6),
+    fillingInputKey(cnst::key::k7),
+    fillingInputKey(cnst::key::k8)*/
 };
 static std::array<INPUT, MAX_MYKEY> inputKey
 {
@@ -137,10 +142,11 @@ static void pressKey(INPUT &in, bool &&isArrow = true, int &&delay = 100) {
 
 int main()
 {
-    HWND hwndDesktop = GetDesktopWindow();
+    HWND hwndDesktop = GetDesktopWindow();    
     cv::Mat result, src, templ;
     double minVal{ }, maxVal{ };
     Point minLoc, maxLoc;
+
     while(true)
     {
         src = hwnd2mat(hwndDesktop);
@@ -158,19 +164,27 @@ int main()
         }
     }
 
-    const int findY{ maxLoc.y + (templ.rows / 2) };
-    const int findX{ maxLoc.x + (templ.cols / 2) };
+    const int findY{ maxLoc.y + (templ.rows / 2) }; // 264 282
+    const int findX{ maxLoc.x + (templ.cols / 2) }; // 965 959
+
     std::array<const int, MAX_MYKEY> arrow_x
     {
-        maxLoc.x + (templ.cols / 2) + cnst::left_dx,
-        maxLoc.x + (templ.cols / 2) + cnst::up_dx,
-        maxLoc.x + (templ.cols / 2) + cnst::right_dx,
-        maxLoc.x + (templ.cols / 2) + cnst::down_dx
+        findX + cnst::left_dx,
+        findX + cnst::up_dx,
+        findX + cnst::right_dx,
+        findX + cnst::down_dx
     };
     std::array<COLORREF, MAX_MYKEY> color;
+
+    std::array<HDC, MAX_MYKEY> hdc_array{ 
+        GetWindowDC(NULL), 
+        GetWindowDC(NULL), 
+        GetWindowDC(NULL), 
+        GetWindowDC(NULL) 
+    };
+
     INPUT mouse;
     mouse.type = INPUT_MOUSE;
-    SetCursorPos(findX, findY);
     mouse.mi.dx = 0;
     mouse.mi.dy = 0;
     mouse.mi.mouseData = 0;
@@ -178,38 +192,44 @@ int main()
 
     do
     {
-        for (int slot{}; slot < inputSlots.size() - 1; ++slot)
+        int slot{};
+        for (int fishing{}; fishing < cnst::fishing::durability; ++fishing)
         {
-            for (int fishing{}; fishing < cnst::fishing::durability; ++fishing)
+            SetCursorPos(findX, findY);
+            if (fishing != 0) Sleep(9000);
+            int count{};
+            while (count < cnst::fishing::max_arrow)
             {
-                int count{};
-                while (count < 40)
+                src = hwnd2mat(hwndDesktop);
+                for (size_t i{}; i < MAX_MYKEY; ++i)
                 {
-                    src = hwnd2mat(hwndDesktop);
-                    for (size_t i{}; i < MAX_MYKEY; ++i)
-                    {
-                        HDC dc = GetWindowDC(NULL);
-                        color[i] = GetPixel(dc, arrow_x[i], findY);
+
+                    std::async(std::launch::async, [&color, &hdc_array, &arrow_x, &findY, &i, &count] {
+                        color[i] = GetPixel(hdc_array[i], arrow_x[i], findY);
                         if (color[i] != cnst::arrow::grey &&
                             color[i] != 0)
                         {
-                            pressKey(inputKey[i]); ++count; break;
+                            pressKey(inputKey[i]); ++count;
                         }
-                    }
+                    });
                 }
-                Sleep(7000);
-                rclick(mouse);
-                Sleep(9000);
             }
-            pressKey(move_left, false, 1000);
-            pressKey(jump, false, 200);
-            pressKey(move_right, false, 1000);
-            pressKey(jump, false, 200);
-            pressKey(move_right, false, 1000);
-            pressKey(move_left, false, 1000);
-            pressKey(jump, false, 200);
-            pressKey(inputSlots[slot + 1], false);
+            // if (fishing == cnst::fishing::durability - 1) break;
+            Sleep(7000);
+            rclick(mouse);
         }
+        Sleep(2000);
+        pressKey(move_left, false, 1000);
+        pressKey(jump, false, 200);
+        pressKey(move_right, false, 1000);
+        pressKey(jump, false, 200);
+        pressKey(move_right, false, 1000);
+        pressKey(move_left, false, 1000);
+        pressKey(jump, false, 200);
+
+        ++slot;
+        if (slot >= inputSlots.size()) break;
+        pressKey(inputSlots[slot + 1], false);
     }
     while (GetAsyncKeyState(VK_ESCAPE) == 0);
 }
