@@ -81,11 +81,6 @@ static std::array<INPUT, cnst::fishing::slots> inputSlots
     fillingInputKey(cnst::key::k1),
     fillingInputKey(cnst::key::k2),
     fillingInputKey(cnst::key::k3)
-    /*fillingInputKey(cnst::key::k4),
-    fillingInputKey(cnst::key::k5),
-    fillingInputKey(cnst::key::k6),
-    fillingInputKey(cnst::key::k7),
-    fillingInputKey(cnst::key::k8)*/
 };
 static std::array<INPUT, MAX_MYKEY> inputKey
 {
@@ -214,7 +209,6 @@ int main()
                     });
                 }
             }
-            // if (fishing == cnst::fishing::durability - 1) break;
             Sleep(7000);
             rclick(mouse);
         }
