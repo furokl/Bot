@@ -5,6 +5,8 @@
 #include <array>
 #include "Constants.h"
 
+#include <iostream>
+
 using namespace cv;
 using namespace std;
 
@@ -71,8 +73,15 @@ static INPUT &fillingInputKey(const int& macros) {
     return in;
 };
 
-static INPUT move_left = fillingInputKey(0x41);
-static INPUT move_right = fillingInputKey(0x44);
+static INPUT move_left = fillingInputKey(cnst::key::A);
+static INPUT move_right = fillingInputKey(cnst::key::D);
+static INPUT jump = fillingInputKey(cnst::key::space);
+static std::array<INPUT, cnst::fishing::slots> inputSlots
+{
+    fillingInputKey(cnst::key::k1),
+    fillingInputKey(cnst::key::k2),
+    fillingInputKey(cnst::key::k3)
+};
 static std::array<INPUT, MAX_MYKEY> inputKey
 {
     fillingInputKey(VK_LEFT),
@@ -106,7 +115,7 @@ static void rclick(INPUT &in) {
     SendInput(1, &in, sizeof INPUT);
 };
 
-static void pressKey(INPUT &in, bool &&isArrow = true) {
+static void pressKey(INPUT &in, bool &&isArrow = true, int &&delay = 100) {
     if (isArrow) 
     {
         in.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE;
@@ -119,7 +128,7 @@ static void pressKey(INPUT &in, bool &&isArrow = true) {
     {
         in.ki.dwFlags = KEYEVENTF_SCANCODE;
         SendInput(1, &in, sizeof INPUT);
-        Sleep(100);
+        Sleep(delay);
         in.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
         SendInput(1, &in, sizeof INPUT);
         Sleep(100);
@@ -169,26 +178,38 @@ int main()
 
     do
     {
-        int count{};
-        while (count < 40)
+        for (int slot{}; slot < inputSlots.size() - 1; ++slot)
         {
-            src = hwnd2mat(hwndDesktop);
-            for (size_t i{}; i < MAX_MYKEY; ++i)
+            for (int fishing{}; fishing < cnst::fishing::durability; ++fishing)
             {
-                HDC dc = GetWindowDC(NULL);
-                color[i] = GetPixel(dc, arrow_x[i], findY);
-                if (color[i] != cnst::arrow::grey &&
-                    color[i] != 0)
+                int count{};
+                while (count < 40)
                 {
-                    pressKey(inputKey[i]); ++count; break;
+                    src = hwnd2mat(hwndDesktop);
+                    for (size_t i{}; i < MAX_MYKEY; ++i)
+                    {
+                        HDC dc = GetWindowDC(NULL);
+                        color[i] = GetPixel(dc, arrow_x[i], findY);
+                        if (color[i] != cnst::arrow::grey &&
+                            color[i] != 0)
+                        {
+                            pressKey(inputKey[i]); ++count; break;
+                        }
+                    }
                 }
+                Sleep(7000);
+                rclick(mouse);
+                Sleep(9000);
             }
+            pressKey(move_left, false, 1000);
+            pressKey(jump, false, 200);
+            pressKey(move_right, false, 1000);
+            pressKey(jump, false, 200);
+            pressKey(move_right, false, 1000);
+            pressKey(move_left, false, 1000);
+            pressKey(jump, false, 200);
+            pressKey(inputSlots[slot + 1], false);
         }
-        Sleep(7000);
-        pressKey(move_left, false);
-        pressKey(move_right, false);
-        rclick(mouse);
-        Sleep(9000);
     }
     while (GetAsyncKeyState(VK_ESCAPE) == 0);
 }
