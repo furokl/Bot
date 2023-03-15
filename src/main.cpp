@@ -1,238 +1,109 @@
-﻿#include <Windows.h>
-#include <WinUser.h>
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
-#include <array>
-#include "Constants.h"
-#include <future>
-#include <iostream>
+﻿#include "Detector.h"
+#include "Keyboard.h"
 
-using namespace cv;
-using namespace std;
-
-static HDC hwindowDC, hwindowCompatibleDC;
-static int height, width, srcheight, srcwidth;
-static HBITMAP hbwindow;
-static Mat src;
-static BITMAPINFOHEADER  bi;
-static RECT windowsize;
-
-static Mat hwnd2mat(HWND hwnd)
+int WinMain(_In_ HINSTANCE hInstance,
+            _In_opt_ HINSTANCE hPrevInstance,
+            _In_ LPSTR lpCmdLine,
+            _In_ int nShowCmd)
 {
-    hwindowDC = GetDC(hwnd);
-    hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
-    SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
-
-    GetClientRect(hwnd, &windowsize);
-
-    srcheight = windowsize.bottom;
-    srcwidth = windowsize.right;
-    height = windowsize.bottom / 1;
-    width = windowsize.right / 1;
-
-    src.create(height, width, CV_8UC4);
-
-    hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
-    bi.biSize = sizeof(BITMAPINFOHEADER);
-    bi.biWidth = width;
-    bi.biHeight = -height;
-    bi.biPlanes = 1;
-    bi.biBitCount = 32;
-    bi.biCompression = BI_RGB;
-    bi.biSizeImage = 0;
-    bi.biXPelsPerMeter = 0;
-    bi.biYPelsPerMeter = 0;
-    bi.biClrUsed = 0;
-    bi.biClrImportant = 0;
-
-    SelectObject(hwindowCompatibleDC, hbwindow);
-    StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, 0, 0, srcwidth, srcheight, SRCCOPY); //change SRCCOPY to NOTSRCCOPY for wacky colors !
-    GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, src.data, (BITMAPINFO *)&bi, DIB_RGB_COLORS);  //copy from hwindowCompatibleDC to hbwindow
-
-    DeleteObject(hbwindow);
-    DeleteDC(hwindowCompatibleDC);
-    ReleaseDC(hwnd, hwindowDC);
-
-    return src;
-}
-
-enum MyKey
-{
-    LEFT,
-    UP,
-    RIGHT,
-    DOWN,
-    MAX_MYKEY
-};
-
-static INPUT &fillingInputKey(const int& macros) {
-    INPUT in;
-    in.type = INPUT_KEYBOARD;
-    in.ki.wVk = macros;
-    in.ki.wScan = MapVirtualKey(macros, MAPVK_VK_TO_VSC);
-    return in;
-};
-
-static INPUT move_left = fillingInputKey(cnst::key::A);
-static INPUT move_right = fillingInputKey(cnst::key::D);
-static INPUT jump = fillingInputKey(cnst::key::space);
-static std::array<INPUT, cnst::fishing::slots> inputSlots
-{
-    fillingInputKey(cnst::key::k1),
-    fillingInputKey(cnst::key::k2),
-    fillingInputKey(cnst::key::k3)
-};
-static std::array<INPUT, MAX_MYKEY> inputKey
-{
-    fillingInputKey(VK_LEFT),
-    fillingInputKey(VK_UP),
-    fillingInputKey(VK_RIGHT),
-    fillingInputKey(VK_DOWN)
-};
-
-static cv::Mat templ_light = imread("..\\src\\resources\\GreyArrowLight.png", IMREAD_UNCHANGED);
-static cv::Mat templ_dark = imread("..\\src\\resources\\GreyArrowDark.png", IMREAD_UNCHANGED);
-
-static void lclick(INPUT &in) {
-    in.mi.dwFlags = MOUSEEVENTF_MOVE;
-    SendInput(1, &in, sizeof INPUT);
-    Sleep(50);
-    in.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    SendInput(1, &in, sizeof INPUT);
-    Sleep(50);
-    in.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(1, &in, sizeof INPUT);
-};
-
-static void rclick(INPUT &in) {
-    in.mi.dwFlags = MOUSEEVENTF_MOVE;
-    SendInput(1, &in, sizeof INPUT);
-    Sleep(50);
-    in.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
-    SendInput(1, &in, sizeof INPUT);
-    Sleep(50);
-    in.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
-    SendInput(1, &in, sizeof INPUT);
-};
-
-static void pressKey(INPUT &in, bool &&isArrow = true, int &&delay = 100) {
-    if (isArrow) 
-    {
-        in.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE;
-        SendInput(1, &in, sizeof INPUT);
-        in.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-        SendInput(1, &in, sizeof INPUT);
-        Sleep(200);
-    }
-    else
-    {
-        in.ki.dwFlags = KEYEVENTF_SCANCODE;
-        SendInput(1, &in, sizeof INPUT);
-        Sleep(delay);
-        in.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-        SendInput(1, &in, sizeof INPUT);
-        Sleep(100);
-    }
-}
-
-int main()
-{
-    std::cout << "\nProgramm started...\n" << '\n';
-    HWND hwndDesktop = GetDesktopWindow();    
-    cv::Mat result, src, templ;
-    double minVal{ }, maxVal{ };
-    Point minLoc, maxLoc;
-
-    while(true)
-    {
-        src = hwnd2mat(hwndDesktop);
-        matchTemplate(src, templ_light, result, TM_CCORR_NORMED);
-        minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
-        if (maxVal > cnst::cv_k::grey_arrows) {
-            templ = std::move(templ_light);
-            break;
-        }
-        matchTemplate(src, templ_dark, result, TM_CCORR_NORMED);
-        minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
-        if (maxVal > cnst::cv_k::grey_arrows) {
-            templ = std::move(templ_dark);
-            break;
-        }
-    }
-    std::cout << '\t' << "*grey arrow finded*" << '\n';
-
-    const int findY{ maxLoc.y + (templ.rows / 2) }; // 264 282
-    const int findX{ maxLoc.x + (templ.cols / 2) }; // 965 959
-
-    std::cout
-        << "| X = " << findX << '\t'
-        << "| Y = " << findY << '\n';
-
-    std::array<const int, MAX_MYKEY> arrow_x
-    {
-        findX + cnst::left_dx,
-        findX + cnst::up_dx,
-        findX + cnst::right_dx,
-        findX + cnst::down_dx
-    };
-    std::array<COLORREF, MAX_MYKEY> color;
-
-    std::array<HDC, MAX_MYKEY> hdc_array{ 
+    Keyboard keyboard;
+    Detector openCV;
+    std::array<std::thread, Keyboard::MAX_ARROWKEY> th_arrows;
+    std::array<COLORREF, Keyboard::MAX_ARROWKEY> pixel_arrows;
+    std::array<int, Keyboard::MAX_ARROWKEY> arrow_x;
+    std::array<HDC, Keyboard::MAX_ARROWKEY> hdc_arrows { 
         GetWindowDC(NULL), 
         GetWindowDC(NULL), 
         GetWindowDC(NULL), 
         GetWindowDC(NULL) 
     };
 
-    INPUT mouse;
-    mouse.type = INPUT_MOUSE;
-    mouse.mi.dx = 0;
-    mouse.mi.dy = 0;
-    mouse.mi.mouseData = 0;
-    mouse.mi.time = 0;
+    // Close programm on 'ESC' key
+    std::thread close_programm([&openCV]() {
+        do
+        {
+            ;
+        }
+        while (GetAsyncKeyState(VK_ESCAPE) == 0);
+        exit(EXIT_SUCCESS);
+    });
+    close_programm.detach();
 
-    do
+    // -----------------------------------------
+    // Dlya Pigmeya
+    // 
+    // openCV.find_x = 959;
+    // openCV.find_y = 264;
+    // Sleep(9000);
+    // // while(!openCV.detectFromFullscreen());
+    // 
+    // -----------------------------------------
+
+    // Detect grey arrows
+     openCV.find_x = 959;
+     openCV.find_y = 264;
+     Sleep(9000);
+     // while(!openCV.detectFromFullscreen());
+    arrow_x = {
+        openCV.getX() + cnst::left_dx,
+        openCV.getX() + cnst::up_dx,
+        openCV.getX() + cnst::right_dx,
+        openCV.getX() + cnst::down_dx
+    };
+ 
+    // Bot work
+    while (true) 
     {
         int slot{};
         for (int fishing{}; fishing < cnst::fishing::durability; ++fishing)
         {
-            std::cout << "*fishing*" << '\n';
-            SetCursorPos(findX, findY);
+            SetCursorPos(openCV.getX(), openCV.getY());
             if (fishing != 0) Sleep(9000);
-            int count{};
-            while (count < cnst::fishing::max_arrow)
+            std::atomic<int> count{};
+
+            // Run thread refresh screen
+            std::thread thScr([&openCV, &count]() {
+                while (count.load() < cnst::fishing::max_arrow) {
+                    openCV.screen.getScreen();
+                }});
+            thScr.detach();
+
+            // Run threads check pixels on grey arrows
+            for (int i{}; i < Keyboard::MAX_ARROWKEY; ++i) 
             {
-                src = hwnd2mat(hwndDesktop);
-                for (size_t i{}; i < MAX_MYKEY; ++i)
-                {
-
-                    std::async(std::launch::async, [&color, &hdc_array, &arrow_x, &findY, &i, &count] {
-                        color[i] = GetPixel(hdc_array[i], arrow_x[i], findY);
-                        if (color[i] != cnst::arrow::grey &&
-                            color[i] != 0)
+                th_arrows[i] = std::thread([i, &keyboard, &hdc_arrows, &pixel_arrows, &arrow_x, &openCV, &count]() {
+                    while (count.load() < cnst::fishing::max_arrow) {
+                        pixel_arrows[i] = GetPixel(hdc_arrows[i], arrow_x[i], openCV.getY());
+                        if (pixel_arrows[i] != cnst::arrow::grey &&
+                            pixel_arrows[i] != 0)
                         {
-                            pressKey(inputKey[i]); ++count;
+                            keyboard.ar(i); ++count;
                         }
-                    });
-                }
+                    }
+                });
             }
-            Sleep(7000);
-            rclick(mouse);
-        }
-        Sleep(2000);
-        std::cout << "*moving*" << '\n';
-        pressKey(move_left, false, 1000);
-        pressKey(jump, false, 200);
-        pressKey(move_right, false, 1000);
-        pressKey(jump, false, 200);
-        pressKey(move_right, false, 1000);
-        pressKey(move_left, false, 1000);
-        pressKey(jump, false, 200);
+            // End threads
+            for (auto &th : th_arrows) th.join();
 
+            Sleep(7000);
+            keyboard.rclick();
+        }
+
+        // Moving when fishing rod is broken
+        Sleep(2000);
+        keyboard
+            .rclick()
+            .move_left()
+            .jump()
+            .move_right()
+            .jump()
+            .move_right()
+            .move_left()
+            .jump();
+
+        // Change slot
+        if (slot >= keyboard.MAX_SLOTS) break;
         ++slot;
-        if (slot >= inputSlots.size()) break;
-        std::cout << "*change slot*" << '\n';
-        pressKey(inputSlots[slot + 1], false);
+        keyboard.change_slot(slot);
     }
-    while (GetAsyncKeyState(VK_ESCAPE) == 0);
 }

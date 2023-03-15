@@ -1,5 +1,11 @@
 #pragma once
+#include "opencv2/highgui.hpp"
 
+// -----------------------------------------
+// 
+// Constants
+// 
+// -----------------------------------------
 namespace cnst
 {
     const int
@@ -13,6 +19,13 @@ namespace cnst
         const double grey_arrows = 0.97;
     } 
 
+    namespace load
+    {
+        const cv::Mat
+            templ_light = imread("..\\src\\resources\\GreyArrowLight.png", cv::IMREAD_UNCHANGED),
+            templ_dark = imread("..\\src\\resources\\GreyArrowDark.png", cv::IMREAD_UNCHANGED);
+    }
+
     namespace arrow
     {
         const int grey = 11708060;
@@ -22,7 +35,6 @@ namespace cnst
     {
         const int
             durability = 12,
-            slots = 3,
             max_arrow = 40;
     }
 
