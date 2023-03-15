@@ -3,7 +3,6 @@
 <summary>Управление</summary>
 ```txt
 ESC - завершить программу
-```
 </details>
 
 <details>
@@ -15,7 +14,6 @@ cd build
 cmake -G "Visual Studio 17 2022" ..
 
 Используйте cmake --help, чтобы отобразить список возможных платформ
-```
 </details>
 
 <details>
