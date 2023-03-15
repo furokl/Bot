@@ -40,10 +40,7 @@ int WinMain(_In_ HINSTANCE hInstance,
     // -----------------------------------------
 
     // Detect grey arrows
-     openCV.find_x = 959;
-     openCV.find_y = 264;
-     Sleep(9000);
-     // while(!openCV.detectFromFullscreen());
+    while(!openCV.detectFromFullscreen());
     arrow_x = {
         openCV.getX() + cnst::left_dx,
         openCV.getX() + cnst::up_dx,
