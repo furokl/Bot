@@ -17,7 +17,7 @@
 // -----------------------------------------
 // private method for filling any key
 // -----------------------------------------
-static INPUT& fillingInputKey(const int& macros) {
+static INPUT fillingInputKey(const int& macros) {
     INPUT in;
     in.type = INPUT_KEYBOARD;
     in.ki.wVk = macros;

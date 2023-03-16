@@ -1,25 +1,25 @@
 ﻿#include "Detector.h"
 #include "Keyboard.h"
 
+Keyboard keyboard;
+Detector openCV;
+std::array<std::thread, Keyboard::MAX_ARROWKEY> th_arrows;
+std::array<COLORREF, Keyboard::MAX_ARROWKEY> pixel_arrows;
+std::array<int, Keyboard::MAX_ARROWKEY> arrow_x;
+std::array<HDC, Keyboard::MAX_ARROWKEY> hdc_arrows { 
+    GetWindowDC(NULL), 
+    GetWindowDC(NULL), 
+    GetWindowDC(NULL), 
+    GetWindowDC(NULL) 
+};
+
 int WinMain(_In_ HINSTANCE hInstance,
             _In_opt_ HINSTANCE hPrevInstance,
             _In_ LPSTR lpCmdLine,
             _In_ int nShowCmd)
 {
-    Keyboard keyboard;
-    Detector openCV;
-    std::array<std::thread, Keyboard::MAX_ARROWKEY> th_arrows;
-    std::array<COLORREF, Keyboard::MAX_ARROWKEY> pixel_arrows;
-    std::array<int, Keyboard::MAX_ARROWKEY> arrow_x;
-    std::array<HDC, Keyboard::MAX_ARROWKEY> hdc_arrows { 
-        GetWindowDC(NULL), 
-        GetWindowDC(NULL), 
-        GetWindowDC(NULL), 
-        GetWindowDC(NULL) 
-    };
-
     // Close programm on 'ESC' key
-    std::thread close_programm([&openCV]() {
+    std::thread close_programm([]() {
         do
         {
             ;
@@ -59,7 +59,7 @@ int WinMain(_In_ HINSTANCE hInstance,
             std::atomic<int> count{};
 
             // Run thread refresh screen
-            std::thread thScr([&openCV, &count]() {
+            std::thread thScr([&count]() {
                 while (count.load() < cnst::fishing::max_arrow) {
                     openCV.screen.getScreen();
                 }});
@@ -68,7 +68,7 @@ int WinMain(_In_ HINSTANCE hInstance,
             // Run threads check pixels on grey arrows
             for (int i{}; i < Keyboard::MAX_ARROWKEY; ++i) 
             {
-                th_arrows[i] = std::thread([i, &keyboard, &hdc_arrows, &pixel_arrows, &arrow_x, &openCV, &count]() {
+                th_arrows[i] = std::thread([i, &count]() {
                     while (count.load() < cnst::fishing::max_arrow) {
                         pixel_arrows[i] = GetPixel(hdc_arrows[i], arrow_x[i], openCV.getY());
                         if (pixel_arrows[i] != cnst::arrow::grey &&

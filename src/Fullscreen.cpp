@@ -16,7 +16,7 @@ void Fullscreen::init() {
     height = windowsize.bottom / 1;
     width = windowsize.right / 1;
 
-    src.create(height, width, CV_8UC4);
+    src.create(height, width, CV_8UC3);
 
     hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
     bi.biSize = sizeof(BITMAPINFOHEADER);
